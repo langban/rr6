@@ -7,7 +7,9 @@ on:
 
 jobs:
   build:
+    name: Build
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -34,6 +36,9 @@ jobs:
       - name: Build project
         run: yarn build
 
+      - name: Verify build output
+        run: ls -R dist
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -41,9 +46,11 @@ jobs:
           path: dist/
 
   deploy:
+    name: Deploy
     needs: build
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
+
     steps:
       - name: Download artifacts
         uses: actions/download-artifact@v4
@@ -57,6 +64,5 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./dist
           force_orphan: true
-          # 关键修正点
-          external_repository: langban/rr6  # 仓库名格式：<用户名/仓库名>
-          publish_branch: gh-pages          # 目标分支
+          repository_name: langban/rr6  # 你的仓库名
+          publish_branch: gh-pages      # 明确分支
