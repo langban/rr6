@@ -1,14 +1,14 @@
-name: Windows Build & Deploy
+name: Ubuntu Build & Deploy
 
 on:
-  workflow_dispatch:
+  workflow_dispatch:   # 允许手动触发
   push:
-    branches: [main]
+    branches: [main]   # 推送到 main 分支时自动触发
 
 jobs:
   build:
     name: Build
-    runs-on: windows-latest
+    runs-on: ubuntu-latest  # 使用 Ubuntu 环境
 
     steps:
       - name: Checkout code
@@ -17,10 +17,18 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 20  # 指定 Node.js 版本
 
       - name: Install Yarn
-        run: npm install -g yarn
+        run: npm install -g yarn  # 通过 npm 安装 Yarn
+
+      - name: Cache Yarn dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            .yarn/cache
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
 
       - name: Install dependencies
         run: yarn install --frozen-lockfile  # 锁定依赖版本
@@ -29,7 +37,7 @@ jobs:
         run: yarn build
 
       - name: Verify build output
-        run: dir dist  # Windows 命令检查目录
+        run: ls -R dist  # 检查构建产物（Linux 命令）
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -40,7 +48,7 @@ jobs:
   deploy:
     name: Deploy
     needs: build
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
 
     steps:
@@ -50,14 +58,9 @@ jobs:
           name: build-output
           path: dist/
 
-      - name: Check downloaded files
-        run: dir dist  # 确认文件存在
-
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./dist
-          force_orphan: true  # 强制推送
-          # user_name: "Your Name"     # 可选：指定提交者信息
-          # user_email: "your@email.com"
+          force_orphan: true  # 强制清空历史，避免 Git 冲突
