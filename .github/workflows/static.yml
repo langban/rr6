@@ -1,0 +1,54 @@
+name: Windows Build & Deploy
+
+on:
+  workflow_dispatch:   # 允许手动触发
+  push:
+    branches: [main]  # 推送到 main 分支时自动触发
+
+jobs:
+  build:
+    name: Build
+    runs-on: windows-latest  # 使用 Windows 环境
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20  # 指定 Node.js 版本（按需修改）
+
+      - name: Install Yarn (if needed)
+        run: npm install -g yarn  # 确保 Yarn 全局安装
+
+      - name: Install dependencies
+        run: yarn install
+
+      - name: Build project
+        run: yarn build  # 确保你的项目配置了 build 脚本
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-output
+          path: dist/  # 假设构建产物输出到 dist 目录
+
+  deploy:
+    name: Deploy
+    needs: build
+    runs-on: windows-latest
+    if: github.ref == 'refs/heads/main'  # 仅在 main 分支部署
+
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-output
+          path: dist/
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
